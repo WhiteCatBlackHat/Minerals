@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minerals</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        canvas { display: block; }
+        p { margin: 0; }
+        ol li p { margin: 5px; }
+        
+        /* UI 界面 */
+        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; text-shadow: 1px 1px 2px black; }
+        .bar-container { width: 200px; height: 12px; background: #333; margin-top: 5px; border-radius: 6px; overflow: hidden; border: 1px solid #555; }
+        .hp-fill { height: 100%; background: #ff3333; width: 100%; transition: width 0.1s linear; }
+        
+        /* 暂停菜单 */
+        #pauseMenu { 
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); 
+            justify-content: center; align-items: center; flex-direction: column; z-index: 100; 
+        }
+        .menu-box { background: #222; padding: 30px; border-radius: 10px; text-align: center; border: 2px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { margin: 0 0 10px 0; color: #ffeb3b; }
+        .btn { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        .btn-resume { background: #4CAF50; color: white; }
+        .btn-giveup { background: #f44336; color: white; }
+        .btn:hover { opacity: 0.9; }
+
+        /* 开始屏幕 */
+        #startScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; z-index: 200; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-size: 24px; font-weight: bold;">分数: <span id="scoreVal">0</span></div>
+    <div>质量: <span id="massVal">100</span></div>
+    <div id="statusText">状态: 正常挖掘</div>
+    <div class="bar-container"><div id="hpBar" class="hp-fill"></div></div>
+</div>
+
+<!-- 暂停菜单 -->
+<div id="pauseMenu">
+    <div class="menu-box">
+        <h1>游戏已暂停</h1>
+        <button class="btn btn-resume" onclick="resumeGame()">继续 (Resume)</button>
+        <button class="btn btn-giveup" onclick="giveUp()">放弃 (Give Up)</button>
+    </div>
+</div>
+
+<!-- 开始屏幕 -->
+<div id="startScreen">
+    <h1 style="font-size: 40px; color: #ffeb3b;">Minerals</h1>
+    <div id="tutorial">
+        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;教程：</p>
+        <ol>
+            <li><p>使用鼠标移动</p></li>
+            <li><p>空格/鼠标左键：愤怒（加速 & 耗血）</p></li>
+            <li><p>Shift/鼠标右键：伤心（回血 & 减速）</p></li>
+            <li><p>按 Esc 或点击左上角三角按钮暂停</p></li>
+        </ol>
+    </div>
+    <button class="btn btn-resume" style="font-size: 20px;" onclick="startGame()">开始游戏</button>
+    <h3><b>更新日志（
+        <button onclick="document.getElementById('updateData').hidden=false">展开</button> 
+        <button onclick="document.getElementById('updateData').hidden=true">收起</button>
+        ）</b></h3>
+    <div id="updateData" hidden="true">
+        <ul>
+            <li><p>v2.4 2026.04.11 更新 UI</p></li>
+            <li><p>v2.3 2026.04.11 修 bug</p></li>
+            <li><p>v2.2 2026.04.11 减小碰撞伤害</p></li>
+            <li><p>v2.1 2026.04.11 修改碰撞时的位移逻辑</p></li>
+            <li><p>v2.0 2026.04.11 增加了击杀时的质量加成</p></li>
+        </ul>
+    </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const pauseMenu = document.getElementById('pauseMenu');
+    
+    let width, height;
+    let gameRunning = false;
+    let isPaused = false;
+    let cameraX = 0, cameraY = 0;
+    
+    // 矿物配置
+    const MINERALS = [
+        { name: '泥土', color: '#5d4037', score: 1, density: 5, regenTime: 200 },
+        { name: '岩浆', color: '#ff5722', score: 5, density: 15, regenTime: 400 },
+        { name: '黄金', color: '#ffeb3b', score: 10, density: 30, regenTime: 600 },
+        { name: '钻石', color: '#00e5ff', score: 20, density: 50, regenTime: 800 },
+        { name: '基岩', color: '#212121', score: 50, density: 120, regenTime: 1000 },
+        { name: '铀矿', color: '#76ff03', score: 30, density: 60, regenTime: 700 },
+        { name: '石英', color: '#f5f5f5', score: 15, density: 25, regenTime: 500 },
+        { name: '紫水晶', color: '#e040fb', score: 25, density: 40, regenTime: 650 }
+    ];
+
+    // 实体类
+    class Digger {
+        constructor(x, y, isBot = false) {
+            this.x = x;
+            this.y = y;
+            this.radius = 20;
+            this.speed = 3;
+            this.hp = 100;
+            this.maxHp = 100;
+            this.mass = 100;
+            this.score = 0;
+            this.isBot = isBot;
+            this.angle = 0;
+            this.state = 'normal';
+            this.color = isBot ? '#ff3333' : '#ffeb3b';
+            
+            // AI 相关
+            this.targetMineral = null;
+            this.aggressionTimer = 0;
+        }
+
+        update() {
+            // 1. 状态逻辑
+            if (!this.isBot) {
+                this.handlePlayerInput();
+            } else {
+                this.handleBotAI();
+            }
+
+            // 2. 移动
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+
+            // 3. 体积随质量变化 (核心需求)
+            this.radius = 15 + Math.sqrt(this.mass) * 2; 
+        }
+
+        handlePlayerInput() {
+            if (mouse.leftDown || keys['Space']) {
+                this.state = 'angry';
+                this.speed = 8; 
+                this.hp -= 0.1; 
+            } else if (mouse.rightDown || keys['ShiftLeft']) {
+                this.state = 'sad';
+                this.speed = 1.5; 
+                this.hp = Math.min(this.hp + 0.3, this.maxHp); 
+            } else {
+                this.state = 'normal';
+                this.speed = 4;
+            }
+
+            const worldMouseX = mouse.x + cameraX;
+            const worldMouseY = mouse.y + cameraY;
+            const dx = worldMouseX - this.x;
+            const dy = worldMouseY - this.y;
+            this.angle = Math.atan2(dy, dx);
+        }
+
+        handleBotAI() {
+            // AI 逻辑：寻找目标
+            let target = null;
+            let minDist = 600; // 视野范围
+
+            // 简单的 AI 决策树
+            const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+            
+            // 如果玩家比它小，且距离适中 -> 攻击玩家
+            if (this.mass > player.mass * 1.1 && distToPlayer < 800) {
+                target = { x: player.x, y: player.y, isPlayer: true };
+                this.state = 'angry'; // 攻击时愤怒
+            } 
+            // 如果玩家比它大很多 -> 逃跑
+            else if (this.mass < player.mass * 0.8 && distToPlayer < 600) {
+                const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+                this.angle = angleToPlayer + Math.PI; // 反向跑
+                this.speed = 6;
+                return; // 跳过挖掘逻辑
+            }
+            // 否则挖矿
+            else {
+                if (!this.targetMineral || minerals.indexOf(this.targetMineral) === -1) {
+                    // 找最近的矿
+                    let closest = null;
+                    let minMinDist = Infinity;
+                    // 这什么 78 变量名 ——W_C_B_H 2026.04.11
+                    minerals.forEach(m => {
+                        const d = Math.hypot(m.x - this.x, m.y - this.y);
+                        if (d < minMinDist) {
+                            minMinDist = d;
+                            closest = m;
+                        }
+                    });
+                    this.targetMineral = closest;
+                }
+                if (this.targetMineral) target = { x: this.targetMineral.x, y: this.targetMineral.y, isPlayer: false };
+            }
+
+            if (target) {
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                this.angle = Math.atan2(dy, dx);
+                
+                // 到达目标附近减速
+                const dist = Math.hypot(dx, dy);
+                if (dist < this.radius + 50) this.speed = 2;
+                else if (this.state !== 'angry') this.speed = 3.5;
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            
+            // 身体
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 边框
+            ctx.strokeStyle = this.isBot ? '#990000' : '#fff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 眼睛
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(this.radius * 0.6, -this.radius * 0.3, this.radius * 0.25, 0, Math.PI * 2);
+            ctx.arc(this.radius * 0.6, this.radius * 0.3, this.radius * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 状态指示
+            if (this.state === 'angry') {
+                ctx.strokeStyle = 'orange';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (this.state === 'sad') {
+                ctx.strokeStyle = 'cyan';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+            
+            // 名字/血条
+            if (this.isBot) {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x - 20, this.y - this.radius - 15, 40, 6);
+                ctx.fillStyle = '#0f0';
+                ctx.fillRect(this.x - 20, this.y - this.radius - 15, 40 * (this.hp / this.maxHp), 6);
+            }
+        }
+    }
+
+    let player;
+    let bots = [];
+    let minerals = [];
+    let particles = [];
+
+    // 输入控制
+    const keys = {};
+    const mouse = { x: 0, y: 0, leftDown: false, rightDown: false };
+
+    window.addEventListener('keydown', e => {
+        keys[e.code] = true;
+        if (e.code === 'Space') mouse.leftDown = true;
+        if (e.code === 'ShiftLeft') mouse.rightDown = true;
+        if (e.code === 'Escape') togglePause();
+    });
+    window.addEventListener('keyup', e => {
+        keys[e.code] = false;
+        if (e.code === 'Space') mouse.leftDown = false;
+        if (e.code === 'ShiftLeft') mouse.rightDown = false;
+    });
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    window.addEventListener('mousedown', e => {
+        if (e.button === 0) mouse.leftDown = true;
+        if (e.button === 2) mouse.rightDown = true;
+    });
+    window.addEventListener('mouseup', e => {
+        if (e.button === 0) mouse.leftDown = false;
+        if (e.button === 2) mouse.rightDown = false;
+    });
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
+    // 游戏初始化
+    function initGame() {
+        player = new Digger(0, 0, false);
+        bots = [];
+        minerals = [];
+        particles = [];
+        
+        const mapSize = 4000;
+        
+        // 生成矿物
+        for (let i = 0; i < 800; i++) {
+            const type = MINERALS[Math.floor(Math.random() * MINERALS.length)];
+            minerals.push({
+                x: (Math.random() - 0.5) * mapSize,
+                y: (Math.random() - 0.5) * mapSize,
+                radius: 10 + Math.random() * 15,
+                type: type,
+                canRegen: true,
+                active: true,
+                regenTimer: 0
+            });
+        }
+
+        // 生成好战 AI
+        for (let i = 0; i < 20; i++) {
+            bots.push(new Digger((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, true));
+        }
+    }
+
+    // --- 修复后的函数顺序 ---
+    
+    // 开始游戏
+    function startGame() {
+        document.getElementById('startScreen').style.display = 'none';
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        initGame(); // 初始化游戏数据
+        gameRunning = true;
+        loop(); // 启动游戏主循环
+    }
+
+    // 暂停/恢复游戏
+    function togglePause() {
+        isPaused = !isPaused;
+        pauseMenu.style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function resumeGame() {
+        isPaused = false;
+        pauseMenu.style.display = 'none';
+    }
+
+    function giveUp() {
+        alert("游戏结束！得分: " + Math.floor(player.score));
+        location.reload();
+    }
+
+    // 核心物理与逻辑更新
+    function update() {
+        if (!gameRunning || isPaused) return;
+
+        player.update();
+        bots.forEach(bot => bot.update());
+
+        // 相机跟随
+        cameraX = player.x - width / 2;
+        cameraY = player.y - height / 2;
+
+        // 1. 矿物再生逻辑
+        minerals.forEach(m => {
+            if (!m.active) {
+                if (Date.now() > m.regenTimer) {
+                    m.active = true;
+                    m.radius = 10 + Math.random() * 15; // 重生时随机大小
+                }
+            }
+        });
+
+        // 2. 碰撞检测
+        const allDiggers = [player, ...bots];
+        
+        allDiggers.forEach(digger => {
+            // 挖矿
+            for (let i = minerals.length - 1; i >= 0; i--) {
+                const m = minerals[i];
+                if (!m.active) continue;
+
+                const dist = Math.hypot(digger.x - m.x, digger.y - m.y);
+                if (dist < digger.radius + m.radius) {
+                    if (digger.mass >= m.type.density) {
+                        digger.mass += m.radius * 0.5;
+                        digger.score += m.type.score;
+                        createParticles(m.x, m.y, m.type.color);
+                        
+                        // 矿物消失，设置重生时间
+                        m.active = false;
+                        m.regenTimer = Date.now() + m.type.regenTime;
+                    }
+                }
+            }
+        });
+
+        // 3. 玩家间碰撞 (PVP)
+        for (let i = 0; i < allDiggers.length; i++) {
+            for (let j = i + 1; j < allDiggers.length; j++) {
+                const d1 = allDiggers[i];
+                const d2 = allDiggers[j];
+                
+                const dx = d2.x - d1.x;
+                const dy = d2.y - d1.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const minDist = d1.radius + d2.radius;
+
+                if (dist < minDist) {
+                    // 发生碰撞
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = minDist - dist;
+
+                    // 弹性推开
+                    const pushX = Math.cos(angle) * overlap;
+                    const pushY = Math.sin(angle) * overlap;
+
+                    d1.x -= pushX * d2.mass / (d1.mass + d2.mass); d1.y -= pushY * d2.mass / (d1.mass + d2.mass);
+                    d2.x += pushX * d1.mass / (d1.mass + d2.mass); d2.y += pushY * d1.mass / (d1.mass + d2.mass);
+
+                    // 伤害计算：质量差决定伤害
+                    const massDiff = Math.abs(d1.mass - d2.mass);
+                    const damageFactor = Math.max(1, massDiff / 500); // 质量差越大伤害越高
+
+                    if (d1.mass > d2.mass) {
+                        d2.hp -= damageFactor;
+                        if (d2.hp <= 0) d1.mass += d2.mass * 0.8;
+                        createParticles(d2.x - Math.cos(angle)*d2.radius, d2.y - Math.sin(angle)*d2.radius, '#fff');
+                    } else if (d2.mass > d1.mass) {
+                        d1.hp -= damageFactor;
+                        if (d1.hp <= 0) d2.mass += d1.mass * 0.8;
+                        createParticles(d1.x + Math.cos(angle)*d1.radius, d1.y + Math.sin(angle)*d1.radius, '#fff');
+                    } else {
+                        d1.hp -= 1; d2.hp -= 1;
+                    }
+                }
+            }
+        }
+
+        // 更新UI
+        document.getElementById('scoreVal').innerText = Math.floor(player.score);
+        document.getElementById('massVal').innerText = Math.floor(player.mass);
+        document.getElementById('statusText').innerText = `状态: ${player.state === 'angry' ? '愤怒 (耗血)' : (player.state === 'sad' ? '伤心 (回血)' : '正常')}`;
+        document.getElementById('hpBar').style.width = (player.hp / player.maxHp * 100) + '%';
+
+        // 死亡处理
+        if (player.hp <= 0) {
+            alert("你挂了！得分: " + Math.floor(player.score));
+            location.reload();
+        }
+        
+        // 机器人重生
+        bots.forEach((bot, index) => {
+            if (bot.hp <= 0) {
+                bots.splice(index, 1);
+                bots.push(new Digger((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, true));
+            }
+        });
+    }
+
+    function createParticles(x, y, color) {
+        for(let i=0; i<4; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                life: 1.0,
+                color: color
+            });
+        }
+    }
+
+    function draw() {
+        // 背景
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.translate(-cameraX, -cameraY);
+
+        // 网格
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        const gridSize = 100;
+        const startX = Math.floor(cameraX / gridSize) * gridSize;
+        const startY = Math.floor(cameraY / gridSize) * gridSize;
+        
+        ctx.beginPath();
+        for(let x = startX; x < cameraX + width; x += gridSize) {
+            ctx.moveTo(x, cameraY); ctx.lineTo(x, cameraY + height);
+        }
+        for(let y = startY; y < cameraY + height; y += gridSize) {
+            ctx.moveTo(cameraX, y); ctx.lineTo(cameraX + width, y);
+        }
+        ctx.stroke();
+
+        // 绘制矿物
+        minerals.forEach(m => {
+            if (m.active) {
+                ctx.fillStyle = m.type.color;
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+
+        // 绘制挖掘机
+        bots.forEach(bot => bot.draw());
+        player.draw();
+
+        // 绘制粒子
+        particles.forEach((p, i) => {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.05;
+            if(p.life <= 0) particles.splice(i, 1);
+        });
+        ctx.globalAlpha = 1.0;
+
+        ctx.restore();
+    }
+
+    function loop() {
+        if (gameRunning) {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    });
+
+</script>
+</body>
+</html>
