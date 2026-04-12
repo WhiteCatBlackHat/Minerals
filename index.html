@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v2.5 2026.04.12 修改碰撞逻辑和 AI 移动逻辑</p></li>
             <li><p>v2.4 2026.04.11 更新 UI</p></li>
             <li><p>v2.3 2026.04.11 修 bug</p></li>
             <li><p>v2.2 2026.04.11 减小碰撞伤害</p></li>
@@ -89,6 +90,7 @@
     let gameRunning = false;
     let isPaused = false;
     let cameraX = 0, cameraY = 0;
+    let cntCreature = 0;
     
     // 矿物配置
     const MINERALS = [
@@ -107,8 +109,10 @@
         constructor(x, y, isBot = false) {
             this.x = x;
             this.y = y;
+            this.id = cntCreature++;
             this.radius = 20;
-            this.speed = 3;
+            this.speed = 4;
+            this.normSpeed = 4;
             this.hp = 100;
             this.maxHp = 100;
             this.mass = 100;
@@ -142,11 +146,11 @@
         handlePlayerInput() {
             if (mouse.leftDown || keys['Space']) {
                 this.state = 'angry';
-                this.speed = 8; 
-                this.hp -= 0.1; 
+                this.speed = this.normSpeed * 2;
+                this.hp -= 0.1;
             } else if (mouse.rightDown || keys['ShiftLeft']) {
                 this.state = 'sad';
-                this.speed = 1.5; 
+                this.speed = this.normSpeed * 0.5;
                 this.hp = Math.min(this.hp + 0.3, this.maxHp); 
             } else {
                 this.state = 'normal';
@@ -161,53 +165,69 @@
         }
 
         handleBotAI() {
-            // AI 逻辑：寻找目标
-            let target = null;
-            let minDist = 600; // 视野范围
-
-            // 简单的 AI 决策树
+            let target = null;  // 追踪的目标
             const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+            const sightRadius = 800;    // 视野范围大小
             
-            // 如果玩家比它小，且距离适中 -> 攻击玩家
-            if (this.mass > player.mass * 1.1 && distToPlayer < 800) {
-                target = { x: player.x, y: player.y, isPlayer: true };
-                this.state = 'angry'; // 攻击时愤怒
-            } 
-            // 如果玩家比它大很多 -> 逃跑
-            else if (this.mass < player.mass * 0.8 && distToPlayer < 600) {
-                const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
-                this.angle = angleToPlayer + Math.PI; // 反向跑
-                this.speed = 6;
-                return; // 跳过挖掘逻辑
+            // 先考虑逃离视野内最巨的
+            let largest = null, maxRadius = -1;
+            if (distToPlayer - this.radius - player.radius <= sightRadius) {
+                largest = player;
+                maxRadius = player.radius;
             }
-            // 否则挖矿
+            bots.forEach(b => {
+                const d = Math.hypot(b.x - this.x, b.y - this.y);
+                if (d - this.radius - b.radius <= sightRadius && b.radius > maxRadius) {
+                    largest = b;
+                    maxRadius = b.radius;
+                }
+            });
+            if (largest && this.mass < largest.mass * 0.8) {
+                const angleToLargest = Math.atan2(largest.y - this.y, largest.x - this.x);
+                this.angle = angleToLargest + Math.PI * 0.75 + Math.random() * Math.PI * 0.5;  // 反向跑
+                this.speed = this.normSpeed * 1.5;
+                return;
+            }
+            // 再考虑追击视野内最蒟的
+            let smallest = null, minRadius = Infinity;
+            if (distToPlayer - this.radius - player.radius <= sightRadius) {
+                smallest = player;
+                minRadius = player.radius;
+            }
+            bots.forEach(b => {
+                const d = Math.hypot(b.x - this.x, b.y - this.y);
+                if (d - this.radius - b.radius <= sightRadius && b.radius < minRadius) {
+                    smallest = b;
+                    minRadius = b.radius;
+                }
+            });
+            if (smallest && this.mass > smallest.mass * 1.1) {
+                target = { x: smallest.x, y: smallest.y };
+                this.state = 'angry'; // 攻击时愤怒
+            }
+            // 最后考虑挖矿
             else {
                 if (!this.targetMineral || minerals.indexOf(this.targetMineral) === -1) {
-                    // 找最近的矿
-                    let closest = null;
-                    let minMinDist = Infinity;
+                    // 找最远的矿
+                    let farthest = null;
+                    let maxMaxDist = -1;
                     // 这什么 78 变量名 ——W_C_B_H 2026.04.11
                     minerals.forEach(m => {
                         const d = Math.hypot(m.x - this.x, m.y - this.y);
-                        if (d < minMinDist) {
-                            minMinDist = d;
-                            closest = m;
+                        if (d > maxMaxDist && d > this.radius) {
+                            maxMaxDist = d;
+                            farthest = m;
                         }
                     });
-                    this.targetMineral = closest;
+                    this.targetMineral = farthest;
                 }
-                if (this.targetMineral) target = { x: this.targetMineral.x, y: this.targetMineral.y, isPlayer: false };
+                if (this.targetMineral) target = { x: this.targetMineral.x, y: this.targetMineral.y };
             }
-
+            
             if (target) {
                 const dx = target.x - this.x;
                 const dy = target.y - this.y;
                 this.angle = Math.atan2(dy, dx);
-                
-                // 到达目标附近减速
-                const dist = Math.hypot(dx, dy);
-                if (dist < this.radius + 50) this.speed = 2;
-                else if (this.state !== 'angry') this.speed = 3.5;
             }
         }
 
@@ -252,7 +272,7 @@
             ctx.restore();
             
             // 名字/血条
-            if (this.isBot) {
+            if (this.isBot && this.hp > 0) {
                 ctx.fillStyle = 'red';
                 ctx.fillRect(this.x - 20, this.y - this.radius - 15, 40, 6);
                 ctx.fillStyle = '#0f0';
@@ -321,8 +341,6 @@
         }
     }
 
-    // --- 修复后的函数顺序 ---
-    
     // 开始游戏
     function startGame() {
         document.getElementById('startScreen').style.display = 'none';
@@ -411,26 +429,28 @@
                     const overlap = minDist - dist;
 
                     // 弹性推开
-                    const pushX = Math.cos(angle) * overlap;
-                    const pushY = Math.sin(angle) * overlap;
+                    const pushX = Math.cos(angle) * overlap * 2;
+                    const pushY = Math.sin(angle) * overlap * 2;
+                    // 双方受影响的系数
+                    const fac1 = d2.mass / (d1.mass + d2.mass);
+                    const fac2 = d1.mass / (d1.mass + d2.mass);
 
-                    d1.x -= pushX * d2.mass / (d1.mass + d2.mass); d1.y -= pushY * d2.mass / (d1.mass + d2.mass);
-                    d2.x += pushX * d1.mass / (d1.mass + d2.mass); d2.y += pushY * d1.mass / (d1.mass + d2.mass);
+                    d1.x -= pushX * fac1; d1.y -= pushY * fac1;
+                    d2.x += pushX * fac2; d2.y += pushY * fac2;
 
                     // 伤害计算：质量差决定伤害
                     const massDiff = Math.abs(d1.mass - d2.mass);
                     const damageFactor = Math.max(1, massDiff / 500); // 质量差越大伤害越高
 
+                    d1.hp -= fac1 * damageFactor;
+                    d2.hp -= fac2 * damageFactor;
+
                     if (d1.mass > d2.mass) {
-                        d2.hp -= damageFactor;
                         if (d2.hp <= 0) d1.mass += d2.mass * 0.8;
                         createParticles(d2.x - Math.cos(angle)*d2.radius, d2.y - Math.sin(angle)*d2.radius, '#fff');
                     } else if (d2.mass > d1.mass) {
-                        d1.hp -= damageFactor;
                         if (d1.hp <= 0) d2.mass += d1.mass * 0.8;
                         createParticles(d1.x + Math.cos(angle)*d1.radius, d1.y + Math.sin(angle)*d1.radius, '#fff');
-                    } else {
-                        d1.hp -= 1; d2.hp -= 1;
                     }
                 }
             }
