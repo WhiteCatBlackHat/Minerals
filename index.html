@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v4.4 2026.04.12 修改 AI 移动逻辑</p></li>
             <li><p>v4.3 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
             <li><p>v4.2 2026.04.12 修改 AI 数量和初始速度</p></li>
             <li><p>v4.1 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
@@ -183,44 +184,41 @@
             const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
             const sightRadius = 800;    // 视野范围大小
             
-            // 先考虑逃离视野内最巨的
-            let largest = null, maxRadius = -1;
+            // 计算出视野内最蒟的和最巨的
+            let smallest = null, minRadius = Infinity, largest = null, maxRadius = -1;
             if (distToPlayer - this.radius - player.radius <= sightRadius) {
+                smallest = player;
+                minRadius = player.radius;
                 largest = player;
                 maxRadius = player.radius;
             }
             bots.forEach(b => {
                 const d = Math.hypot(b.x - this.x, b.y - this.y);
-                if (d - this.radius - b.radius <= sightRadius && b.radius > maxRadius) {
-                    largest = b;
-                    maxRadius = b.radius;
+                if (d - this.radius - b.radius <= sightRadius) {
+                    if (b.radius < minRadius) {
+                        smallest = b;
+                        minRadius = b.radius;
+                    } else if (b.radius > maxRadius) {
+                        largest = b;
+                        maxRadius = b.radius;
+                    }
                 }
             });
-            if (largest && this.mass < largest.mass * 0.8) {
-                const angleToLargest = Math.atan2(largest.y - this.y, largest.x - this.x);
-                this.angle = angleToLargest + Math.PI * 0.75 + Math.random() * Math.PI * 0.5;  // 反向跑
-                this.speed = this.normSpeed * 1.5;
-                return;
-            }
-            // 再考虑追击视野内最蒟的
-            let smallest = null, minRadius = Infinity;
-            if (distToPlayer - this.radius - player.radius <= sightRadius) {
-                smallest = player;
-                minRadius = player.radius;
-            }
-            bots.forEach(b => {
-                const d = Math.hypot(b.x - this.x, b.y - this.y);
-                if (d - this.radius - b.radius <= sightRadius && b.radius < minRadius) {
-                    smallest = b;
-                    minRadius = b.radius;
-                }
-            });
+            // 先考虑追击视野内最蒟的
             if (smallest && this.mass > smallest.mass * 1.1) {
                 target = { x: smallest.x, y: smallest.y };
                 this.state = 'angry'; // 攻击时愤怒
             }
+            // 再考虑逃离视野内最巨的
+            else if (largest && this.mass < largest.mass * 0.8) {
+                const angleToLargest = Math.atan2(largest.y - this.y, largest.x - this.x);
+                this.angle = angleToLargest + Math.PI * 0.75 + Math.random() * Math.PI * 0.5;  // 反向跑
+                this.speed = this.normSpeed * 1.5;
+                this.state = 'normal';
+                return;
+            }
             // 最后考虑挖矿
-            else {
+            else if (!target) {
                 if (!this.targetMineral || minerals.indexOf(this.targetMineral) === -1) {
                     // 找最远的矿
                     let farthest = null;
@@ -236,6 +234,7 @@
                     this.targetMineral = farthest;
                 }
                 if (this.targetMineral) target = { x: this.targetMineral.x, y: this.targetMineral.y };
+                this.state = 'normal';
             }
             
             if (target) {
