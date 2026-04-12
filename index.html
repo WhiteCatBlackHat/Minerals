@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v4.0 2026.04.12 增加质量随时间衰减的效果并更新 UI</p></li>
             <li><p>v3.2 2026.04.12 更新 UI</p></li>
             <li><p>v3.1 2026.04.12 修复碰撞逻辑</p></li>
             <li><p>v3.0 2026.04.12 扩大地图并增加边界（但是我不会画边界 QAQ）</p></li>
@@ -103,7 +104,7 @@
         { name: '岩浆', color: '#ff5722', score: 5, density: 15, regenTime: 400 },
         { name: '黄金', color: '#ffeb3b', score: 10, density: 30, regenTime: 600 },
         { name: '钻石', color: '#00e5ff', score: 20, density: 50, regenTime: 800 },
-        { name: '基岩', color: '#212121', score: 50, density: 120, regenTime: 1000 },
+        { name: '基岩', color: '#919191', score: 50, density: 120, regenTime: 1000 },
         { name: '铀矿', color: '#76ff03', score: 30, density: 60, regenTime: 700 },
         { name: '石英', color: '#f5f5f5', score: 15, density: 25, regenTime: 500 },
         { name: '紫水晶', color: '#e040fb', score: 25, density: 40, regenTime: 650 }
@@ -141,7 +142,7 @@
             }
 
             // 2. 体积随质量变化
-            this.radius = 15 + Math.sqrt(this.mass);
+            this.radius = 15 + Math.sqrt(this.mass) * 2;
 
             // 3. 移动
             this.x += Math.cos(this.angle) * this.speed;
@@ -420,8 +421,11 @@
                 }
             }
         });
+        
+        // 3. 质量随时间衰减
+        allDiggers.forEach(digger => { digger.mass -= digger.mass * 0.001});
 
-        // 3. 玩家间碰撞 (PVP)
+        // 4. 玩家间碰撞 (PVP)
         for (let i = 0; i < allDiggers.length; i++) {
             for (let j = i + 1; j < allDiggers.length; j++) {
                 const d1 = allDiggers[i];
