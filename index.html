@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v3.0 2026.04.12 扩大地图并增加边界（但是我不会画边界 QAQ）</p></li>
             <li><p>v2.6 2026.04.12 修复 AI 生成逻辑</p></li>
             <li><p>v2.5 2026.04.12 修改碰撞逻辑和 AI 移动逻辑</p></li>
             <li><p>v2.4 2026.04.11 更新 UI</p></li>
@@ -92,7 +93,7 @@
     let isPaused = false;
     let cameraX = 0, cameraY = 0;
     let cntCreature = 0;
-    const mapSize = 4000;
+    const mapSize = 10000;
     
     // 矿物配置
     const MINERALS = [
@@ -137,12 +138,17 @@
                 this.handleBotAI();
             }
 
-            // 2. 移动
+            // 2. 体积随质量变化
+            this.radius = 15 + Math.sqrt(this.mass) * 2;
+
+            // 3. 移动
             this.x += Math.cos(this.angle) * this.speed;
             this.y += Math.sin(this.angle) * this.speed;
-
-            // 3. 体积随质量变化 (核心需求)
-            this.radius = 15 + Math.sqrt(this.mass) * 2; 
+            if (this.x - this.radius < -0.5 * mapSize) this.x = this.radius - 0.5 * mapSize;
+            if (this.y - this.radius < -0.5 * mapSize) this.y = this.radius - 0.5 * mapSize;
+            if (this.x + this.radius > 0.5 * mapSize) this.x = 0.5 * mapSize - this.radius;
+            if (this.y + this.radius > 0.5 * mapSize) this.y = 0.5 * mapSize - this.radius;
+            // if (!this.isBot) console.log("Player: (", this.x, ", ", this.y, ")");
         }
 
         handlePlayerInput() {
@@ -322,7 +328,7 @@
         particles = [];
         
         // 生成矿物
-        for (let i = 0; i < 800; i++) {
+        for (let i = 0; i < 5000; i++) {
             const type = MINERALS[Math.floor(Math.random() * MINERALS.length)];
             minerals.push({
                 x: (Math.random() - 0.5) * mapSize,
@@ -336,7 +342,7 @@
         }
 
         // 生成好战 AI
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 100; i++) {
             bots.push(new Digger((Math.random() - 0.5) * mapSize, (Math.random() - 0.5) * mapSize, true));
         }
     }
@@ -377,6 +383,7 @@
         // 相机跟随
         cameraX = player.x - width / 2;
         cameraY = player.y - height / 2;
+        // console.log('Camera: (', cameraX, ', ', cameraY, ')');
 
         // 1. 矿物再生逻辑
         minerals.forEach(m => {
