@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v4.3 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
             <li><p>v4.2 2026.04.12 修改 AI 数量和初始速度</p></li>
             <li><p>v4.1 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
             <li><p>v4.0 2026.04.12 增加质量随时间衰减的效果并更新 UI</p></li>
@@ -413,6 +414,7 @@
                 if (dist < digger.radius + m.radius) {
                     digger.mass += m.type.score;
                     digger.score += m.type.score;
+                    digger.hp = Math.min(digger.hp + m.radius * 0.02, digger.maxHp);
                     // 矿物消失，设置重生时间
                     m.active = false;
                     m.regenTimer = Date.now() + m.type.regenTime;
@@ -523,8 +525,8 @@
 
         // 网格
         ctx.strokeStyle = '#333';
-        ctx.lineWidth = 1;
-        const gridSize = 100;
+        ctx.lineWidth = 4;
+        const gridSize = 400;
         const startX = Math.floor(cameraX / gridSize) * gridSize;
         const startY = Math.floor(cameraY / gridSize) * gridSize;
         
