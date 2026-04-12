@@ -59,7 +59,7 @@
             <li><p>使用鼠标移动</p></li>
             <li><p>空格/鼠标左键：愤怒（加速 & 耗血）</p></li>
             <li><p>Shift/鼠标右键：伤心（回血 & 减速）</p></li>
-            <li><p>按 Esc 或点击左上角三角按钮暂停</p></li>
+            <li><p>按 Esc 暂停</p></li>
         </ol>
     </div>
     <button class="btn btn-resume" style="font-size: 20px;" onclick="startGame()">开始游戏</button>
@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v3.2 2026.04.12 更新 UI</p></li>
             <li><p>v3.1 2026.04.12 修复碰撞逻辑</p></li>
             <li><p>v3.0 2026.04.12 扩大地图并增加边界（但是我不会画边界 QAQ）</p></li>
             <li><p>v2.6 2026.04.12 修复 AI 生成逻辑</p></li>
@@ -140,7 +141,7 @@
             }
 
             // 2. 体积随质量变化
-            this.radius = 15 + Math.sqrt(this.mass) * 2;
+            this.radius = 15 + Math.sqrt(this.mass);
 
             // 3. 移动
             this.x += Math.cos(this.angle) * this.speed;
@@ -334,7 +335,7 @@
             minerals.push({
                 x: (Math.random() - 0.5) * mapSize,
                 y: (Math.random() - 0.5) * mapSize,
-                radius: 10 + Math.random() * 15,
+                radius: 10 + Math.random() * 10,
                 type: type,
                 canRegen: true,
                 active: true,
@@ -465,11 +466,11 @@
 
                     if (d1.mass > d2.mass) createParticles(d2.x - Math.cos(angle)*d2.radius, d2.y - Math.sin(angle)*d2.radius, '#fff');
                     else if (d2.mass > d1.mass) createParticles(d1.x + Math.cos(angle)*d1.radius, d1.y + Math.sin(angle)*d1.radius, '#fff');
+                    
                     if (d1.hp <= 0 && d2.hp > 0) {
                         d2.mass += d1.mass * 0.8;
                         d2.score += d1.mass;
-                    }
-                    else if (d2.hp <= 0 && d1.hp > 0) {
+                    } else if (d2.hp <= 0 && d1.hp > 0) {
                         d1.mass += d2.mass * 0.8;
                         d1.score += d2.mass;
                     }
