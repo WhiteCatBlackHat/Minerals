@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v4.2 2026.04.12 修改 AI 数量和初始速度</p></li>
             <li><p>v4.1 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
             <li><p>v4.0 2026.04.12 增加质量随时间衰减的效果并更新 UI</p></li>
             <li><p>v3.2 2026.04.12 更新 UI</p></li>
@@ -118,8 +119,8 @@
             this.y = y;
             this.id = cntCreature++;
             this.radius = 20;
-            this.speed = 4;
-            this.normSpeed = 4;
+            this.speed = 8;
+            this.normSpeed = 8;
             this.hp = 100;
             this.maxHp = 100;
             this.mass = 100;
@@ -346,7 +347,7 @@
         }
 
         // 生成好战 AI
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 150; i++) {
             bots.push(new Digger((Math.random() - 0.5) * mapSize, (Math.random() - 0.5) * mapSize, true));
         }
     }
