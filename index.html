@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v4.1 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
             <li><p>v4.0 2026.04.12 增加质量随时间衰减的效果并更新 UI</p></li>
             <li><p>v3.2 2026.04.12 更新 UI</p></li>
             <li><p>v3.1 2026.04.12 修复碰撞逻辑</p></li>
@@ -100,14 +101,14 @@
     
     // 矿物配置
     const MINERALS = [
-        { name: '泥土', color: '#5d4037', score: 1, density: 5, regenTime: 200 },
-        { name: '岩浆', color: '#ff5722', score: 5, density: 15, regenTime: 400 },
-        { name: '黄金', color: '#ffeb3b', score: 10, density: 30, regenTime: 600 },
-        { name: '钻石', color: '#00e5ff', score: 20, density: 50, regenTime: 800 },
-        { name: '基岩', color: '#919191', score: 50, density: 120, regenTime: 1000 },
-        { name: '铀矿', color: '#76ff03', score: 30, density: 60, regenTime: 700 },
-        { name: '石英', color: '#f5f5f5', score: 15, density: 25, regenTime: 500 },
-        { name: '紫水晶', color: '#e040fb', score: 25, density: 40, regenTime: 650 }
+        { name: '泥土', color: '#5d4037', score: 10, regenTime: 200 },
+        { name: '岩浆', color: '#ff5722', score: 12, regenTime: 400 },
+        { name: '黄金', color: '#ffeb3b', score: 14, regenTime: 600 },
+        { name: '石英', color: '#f5f5f5', score: 16, regenTime: 500 },
+        { name: '钻石', color: '#00e5ff', score: 18, regenTime: 800 },
+        { name: '水晶', color: '#e040fb', score: 20, regenTime: 650 },
+        { name: '铀矿', color: '#76ff03', score: 25, regenTime: 700 },
+        { name: '基岩', color: '#919191', score: 30, regenTime: 1000 }
     ];
 
     // 实体类
@@ -142,7 +143,7 @@
             }
 
             // 2. 体积随质量变化
-            this.radius = 15 + Math.sqrt(this.mass) * 2;
+            this.radius = 15 + Math.sqrt(this.mass) * 1.5;
 
             // 3. 移动
             this.x += Math.cos(this.angle) * this.speed;
@@ -409,15 +410,11 @@
 
                 const dist = Math.hypot(digger.x - m.x, digger.y - m.y);
                 if (dist < digger.radius + m.radius) {
-                    if (digger.mass >= m.type.density) {
-                        digger.mass += m.radius * 0.5;
-                        digger.score += m.type.score;
-                        // createParticles(m.x, m.y, m.type.color);
-                        
-                        // 矿物消失，设置重生时间
-                        m.active = false;
-                        m.regenTimer = Date.now() + m.type.regenTime;
-                    }
+                    digger.mass += m.type.score;
+                    digger.score += m.type.score;
+                    // 矿物消失，设置重生时间
+                    m.active = false;
+                    m.regenTimer = Date.now() + m.type.regenTime;
                 }
             }
         });
