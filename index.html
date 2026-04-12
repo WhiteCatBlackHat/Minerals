@@ -69,6 +69,7 @@
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v2.6 2026.04.12 修复 AI 生成逻辑</p></li>
             <li><p>v2.5 2026.04.12 修改碰撞逻辑和 AI 移动逻辑</p></li>
             <li><p>v2.4 2026.04.11 更新 UI</p></li>
             <li><p>v2.3 2026.04.11 修 bug</p></li>
@@ -91,6 +92,7 @@
     let isPaused = false;
     let cameraX = 0, cameraY = 0;
     let cntCreature = 0;
+    const mapSize = 4000;
     
     // 矿物配置
     const MINERALS = [
@@ -319,8 +321,6 @@
         minerals = [];
         particles = [];
         
-        const mapSize = 4000;
-        
         // 生成矿物
         for (let i = 0; i < 800; i++) {
             const type = MINERALS[Math.floor(Math.random() * MINERALS.length)];
@@ -337,7 +337,7 @@
 
         // 生成好战 AI
         for (let i = 0; i < 20; i++) {
-            bots.push(new Digger((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, true));
+            bots.push(new Digger((Math.random() - 0.5) * mapSize, (Math.random() - 0.5) * mapSize, true));
         }
     }
 
@@ -472,7 +472,7 @@
         bots.forEach((bot, index) => {
             if (bot.hp <= 0) {
                 bots.splice(index, 1);
-                bots.push(new Digger((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, true));
+                bots.push(new Digger((Math.random() - 0.5) * mapSize, (Math.random() - 0.5) * mapSize, true));
             }
         });
     }
