@@ -13,7 +13,6 @@
         }
         canvas { display: block; }
         
-        /* UI 界面 */
         #ui {
             position: absolute;
             top: 10px; left: 10px;
@@ -21,6 +20,20 @@
             pointer-events: none;
             text-shadow: 1px 1px 2px black;
         }
+        #pauseMenu { 
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px); 
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+        
         .bar-container {
             width: 200px; height: 12px;
             background: #333;
@@ -35,42 +48,14 @@
             width: 100%;
             transition: width 0.1s linear;
         }
-        
-        /* 暂停菜单 */
-        #pauseMenu { 
-            display: none;
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            -webkit-backdrop-filter: blur(2px);
-            backdrop-filter: blur(2px); 
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 100;
-        }
         .menu-box {
             background: #222;
             padding: 30px;
             border-radius: 10px;
             text-align: center;
             border: 2px solid #444;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h1 { margin: 0 0 10px 0; color: #ffeb3b; }
-        .btn {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 16px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .btn-resume { background: #4CAF50; color: white; }
-        .btn-giveup { background: #f44336; color: white; }
-        .btn:hover { opacity: 0.9; }
-
         .fullScreen {
             position: absolute;
             top: 0; left: 0;
@@ -83,11 +68,36 @@
             color: white;
             z-index: 200;
         }
+        
+        h1 { margin: 0 0 10px 0; color: #ffeb3b; }
+        button {
+            padding: 5px 10px;
+            margin: 10px 3px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        button.disabled,
+        button:disabled,
+        button[disabled] {
+            background: #555;
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.65;
+            box-shadow: none;
+        }
+        button:hover { opacity: 0.9; }
+        .btn-resume { background: #4CAF50; color: white; }
+        .btn-giveup { background: #f44336; color: white; }
+
         .score-display { font-size: 24px; font-weight: bold; }
         .start-btn { font-size: 20px; }
         .title { font-size: 40px; }
         #startScreen p { margin: 0; }
         ol li p { margin: 5px; }
+        .clickableText { cursor: pointer; color: #dddddd; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -121,13 +131,18 @@
             <li><p>按 Esc 暂停</p></li>
         </ol>
     </div>
-    <button class="btn btn-resume start-btn" onclick="startGame()">开始游戏</button>
-    <h3><b>更新日志（
-        <button onclick="document.getElementById('updateData').hidden=false">展开</button> 
+    <p>
+        <button class="btn-resume start-btn" onclick="startGame(true)">无限模式</button>
+        <button class="btn-resume start-btn" onclick="startGame(false)">通关模式</button>
+        <button class="btn-resume start-btn disabled" onclick="alert('联机功能暂未开发（不只是暂未开放）！')">联机模式</button>
+    </p>
+    <h3><b>更新日志 (
+        <button onclick="document.getElementById('updateData').hidden=false">展开</button>
         <button onclick="document.getElementById('updateData').hidden=true">收起</button>
-        ）</b></h3>
+    ) </b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v5.1 2026.04.14 增加模式选择并更新 UI</p></li>
             <li><p>v5.0 2026.04.14 增加通关条件并更新 UI</p></li>
             <li><p>v4.4 2026.04.12 修改 AI 移动逻辑</p></li>
             <li><p>v4.3 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
@@ -136,7 +151,7 @@
             <li><p>v4.0 2026.04.12 增加质量随时间衰减的效果并更新 UI</p></li>
             <li><p>v3.2 2026.04.12 更新 UI</p></li>
             <li><p>v3.1 2026.04.12 修复碰撞逻辑</p></li>
-            <li><p>v3.0 2026.04.12 扩大地图并增加边界（但是我不会画边界 QAQ）</p></li>
+            <li><p>v3.0 2026.04.12 扩大地图并增加<span class="clickableText" onclick="alert('但是我不会画边界，QAQ')">边界</span></p></li>
             <li><p>v2.6 2026.04.12 修复 AI 生成逻辑</p></li>
             <li><p>v2.5 2026.04.12 修改碰撞逻辑和 AI 移动逻辑</p></li>
             <li><p>v2.4 2026.04.11 更新 UI</p></li>
@@ -152,8 +167,8 @@
     <div class="menu-box">
         <h1>恭喜通关！</h1>
         <p id="victoryMessage">你已突破 100 万分</p>
-        <button class="btn btn-resume" onclick="restartGame()">再来一局</button>
-        <button class="btn btn-giveup" onclick="showPage('startScreen')">返回标题</button>
+        <button class="btn-resume" onclick="restartGame()">再来一局</button>
+        <button class="btn-giveup" onclick="showPage('startScreen')">返回标题</button>
     </div>
 </div>
 
@@ -161,8 +176,8 @@
     <div class="menu-box">
         <h1>你已经阵亡</h1>
         <p id="deathMessage">得分: 0</p>
-        <button class="btn btn-resume" onclick="restartGame()">重新开始</button>
-        <button class="btn btn-giveup" onclick="showPage('startScreen')">返回标题</button>
+        <button class="btn-resume" onclick="restartGame()">重新开始</button>
+        <button class="btn-giveup" onclick="showPage('startScreen')">返回标题</button>
     </div>
 </div>
 
@@ -181,6 +196,7 @@
     let cntCreature = 0;
     let nowShowing;
     let startTime;
+    let infiniteMode = false;
     
     // 矿物配置
     const MINERALS = [
@@ -452,7 +468,8 @@
     }
 
     // 开始游戏
-    function startGame() {
+    function startGame(isInfinite) {
+        infiniteMode = Boolean(isInfinite);
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
         startTime = Date.now();
@@ -614,7 +631,7 @@
         document.getElementById('hpBar').style.width = (player.hp / player.maxHp * 100) + '%';
 
         // 通关处理
-        if (player.score >= victoryScore) {
+        if (!infiniteMode && player.score >= victoryScore) {
             endGame('你已通关！', true);
             return;
         }
