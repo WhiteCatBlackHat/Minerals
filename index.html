@@ -5,70 +5,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minerals</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: 'Segoe UI', sans-serif;
+        }
         canvas { display: block; }
-        p { margin: 0; }
-        ol li p { margin: 5px; }
         
         /* UI 界面 */
-        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; text-shadow: 1px 1px 2px black; }
-        .bar-container { width: 200px; height: 12px; background: #333; margin-top: 5px; border-radius: 6px; overflow: hidden; border: 1px solid #555; }
-        .hp-fill { height: 100%; background: #ff3333; width: 100%; transition: width 0.1s linear; }
+        #ui {
+            position: absolute;
+            top: 10px; left: 10px;
+            color: white;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px black;
+        }
+        .bar-container {
+            width: 200px; height: 12px;
+            background: #333;
+            margin-top: 5px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #555;
+        }
+        .hp-fill {
+            height: 100%;
+            background: #ff3333;
+            width: 100%;
+            transition: width 0.1s linear;
+        }
         
         /* 暂停菜单 */
         #pauseMenu { 
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); 
-            justify-content: center; align-items: center; flex-direction: column; z-index: 100; 
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px); 
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
         }
-        .menu-box { background: #222; padding: 30px; border-radius: 10px; text-align: center; border: 2px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .menu-box {
+            background: #222;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #444;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h1 { margin: 0 0 10px 0; color: #ffeb3b; }
-        .btn { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        .btn {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
         .btn-resume { background: #4CAF50; color: white; }
         .btn-giveup { background: #f44336; color: white; }
         .btn:hover { opacity: 0.9; }
 
-        /* 开始屏幕 */
-        #startScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; z-index: 200; }
+        .fullScreen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            z-index: 200;
+        }
+        .score-display { font-size: 24px; font-weight: bold; }
+        .start-btn { font-size: 20px; }
+        .title { font-size: 40px; }
+        #startScreen p { margin: 0; }
+        ol li p { margin: 5px; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div style="font-size: 24px; font-weight: bold;">分数: <span id="scoreVal">0</span></div>
-    <div>质量: <span id="massVal">100</span></div>
-    <div id="statusText">状态: 正常</div>
-    <div class="bar-container"><div id="hpBar" class="hp-fill"></div></div>
+<div id="game">
+    <div id="ui">
+        <div class="score-display">分数: <span id="scoreVal">0</span></div>
+        <div>质量: <span id="massVal">100</span></div>
+        <div id="statusText">状态: 正常</div>
+        <div class="bar-container"><div id="hpBar" class="hp-fill"></div></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
 </div>
 
-<!-- 暂停菜单 -->
 <div id="pauseMenu">
     <div class="menu-box">
         <h1>游戏已暂停</h1>
-        <button class="btn btn-resume" onclick="resumeGame()">继续 (Resume)</button>
-        <button class="btn btn-giveup" onclick="giveUp()">放弃 (Give Up)</button>
+        <button class="btn btn-resume" onclick="resumeGame()">继续</button>
+        <button class="btn btn-giveup" onclick="endGame('游戏结束！')">放弃</button>
     </div>
 </div>
 
-<!-- 开始屏幕 -->
-<div id="startScreen">
-    <h1 style="font-size: 40px; color: #ffeb3b;">Minerals</h1>
+<div id="startScreen" class="fullScreen">
+    <h1 class="title">Minerals</h1>
     <div id="tutorial">
         <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;教程：</p>
         <ol>
             <li><p>使用鼠标移动</p></li>
             <li><p>空格/鼠标左键：愤怒（加速 & 耗血）</p></li>
-            <li><p>Shift/鼠标右键：伤心（回血 & 减速）</p></li>
+            <li><p>Shift/鼠标右键：伤心（减速 & 回血）</p></li>
             <li><p>按 Esc 暂停</p></li>
         </ol>
     </div>
-    <button class="btn btn-resume" style="font-size: 20px;" onclick="startGame()">开始游戏</button>
+    <button class="btn btn-resume start-btn" onclick="startGame()">开始游戏</button>
     <h3><b>更新日志（
         <button onclick="document.getElementById('updateData').hidden=false">展开</button> 
         <button onclick="document.getElementById('updateData').hidden=true">收起</button>
         ）</b></h3>
     <div id="updateData" hidden="true">
         <ul>
+            <li><p>v5.0 2026.04.14 增加通关条件并更新 UI</p></li>
             <li><p>v4.4 2026.04.12 修改 AI 移动逻辑</p></li>
             <li><p>v4.3 2026.04.12 修改矿物相关逻辑并更新 UI</p></li>
             <li><p>v4.2 2026.04.12 修改 AI 数量和初始速度</p></li>
@@ -88,19 +148,39 @@
     </div>
 </div>
 
-<canvas id="gameCanvas"></canvas>
+<div id="victoryScreen" class="fullScreen">
+    <div class="menu-box">
+        <h1>恭喜通关！</h1>
+        <p id="victoryMessage">你已突破 100 万分</p>
+        <button class="btn btn-resume" onclick="restartGame()">再来一局</button>
+        <button class="btn btn-giveup" onclick="showPage('startScreen')">返回标题</button>
+    </div>
+</div>
+
+<div id="deathScreen" class="fullScreen">
+    <div class="menu-box">
+        <h1>你已经阵亡</h1>
+        <p id="deathMessage">得分: 0</p>
+        <button class="btn btn-resume" onclick="restartGame()">重新开始</button>
+        <button class="btn btn-giveup" onclick="showPage('startScreen')">返回标题</button>
+    </div>
+</div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const pauseMenu = document.getElementById('pauseMenu');
     
+    const mapSize = 10000;
+    const victoryScore = 1000000;
+    const pages = ['game', 'startScreen', 'deathScreen', 'victoryScreen'];
     let width, height;
     let gameRunning = false;
     let isPaused = false;
     let cameraX = 0, cameraY = 0;
     let cntCreature = 0;
-    const mapSize = 10000;
+    let nowShowing;
+    let startTime;
     
     // 矿物配置
     const MINERALS = [
@@ -307,7 +387,7 @@
         keys[e.code] = true;
         if (e.code === 'Space') mouse.leftDown = true;
         if (e.code === 'ShiftLeft') mouse.rightDown = true;
-        if (e.code === 'Escape') togglePause();
+        if (e.code === 'Escape') if (gameRunning) togglePause();
     });
     window.addEventListener('keyup', e => {
         keys[e.code] = false;
@@ -324,6 +404,20 @@
         if (e.button === 2) mouse.rightDown = false;
     });
     window.addEventListener('contextmenu', e => e.preventDefault());
+    
+    // 初始页面设置
+    pages.forEach(p => {
+        document.getElementById(p).style.display = 'none';
+    });
+    
+    function showPage(pageName) {
+        pages.forEach(p => {
+            const el = document.getElementById(p);
+            el.style.display = (p === pageName) ? 'flex' : 'none';
+        });
+        nowShowing = pageName;
+    }
+    showPage('startScreen');
 
     // 游戏初始化
     function initGame() {
@@ -348,18 +442,36 @@
 
         // 生成好战 AI
         for (let i = 0; i < 150; i++) {
-            bots.push(new Digger((Math.random() - 0.5) * mapSize, (Math.random() - 0.5) * mapSize, true));
+            let x, y;
+            do {
+                x = (Math.random() - 0.5) * mapSize;
+                y = (Math.random() - 0.5) * mapSize;
+            } while (Math.hypot(x - player.x, y - player.y) < 20 + player.radius); // 确保不与玩家重叠
+            bots.push(new Digger(x, y, true));
         }
     }
 
     // 开始游戏
     function startGame() {
-        document.getElementById('startScreen').style.display = 'none';
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
+        startTime = Date.now();
         initGame(); // 初始化游戏数据
+        showPage('game');
         gameRunning = true;
         loop(); // 启动游戏主循环
+    }
+
+    function restartGame() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        startTime = Date.now();
+        initGame();
+        showPage('game');
+        gameRunning = true;
+        isPaused = false;
+        pauseMenu.style.display = 'none';
+        loop();
     }
 
     // 暂停/恢复游戏
@@ -373,9 +485,23 @@
         pauseMenu.style.display = 'none';
     }
 
-    function giveUp() {
-        alert("游戏结束！得分: " + Math.floor(player.score));
-        location.reload();
+    function endGame(message, isVictory = false) {
+        gameRunning = false;
+        isPaused = false;
+        pauseMenu.style.display = 'none';
+        const gameTime = Math.floor((Date.now() - startTime) / 1000); // 秒
+        const finalMass = Math.floor(player.mass);
+        if (isVictory) {
+            const msg = `${message} 最终得分: ${Math.floor(player.score)} | 最终质量: ${finalMass} | 游戏时间: ${gameTime} 秒`;
+            alert(msg);
+            document.getElementById('victoryMessage').innerText = msg;
+            showPage('victoryScreen');
+        } else {
+            const msg = `${message} 得分: ${Math.floor(player.score)} | 最终质量: ${finalMass} | 游戏时间: ${gameTime} 秒`;
+            alert(msg);
+            document.getElementById('deathMessage').innerText = msg;
+            showPage('deathScreen');
+        }
     }
 
     // 核心物理与逻辑更新
@@ -487,17 +613,28 @@
         document.getElementById('statusText').innerText = `状态: ${player.state === 'angry' ? '愤怒 (耗血)' : (player.state === 'sad' ? '伤心 (回血)' : '正常')}`;
         document.getElementById('hpBar').style.width = (player.hp / player.maxHp * 100) + '%';
 
+        // 通关处理
+        if (player.score >= victoryScore) {
+            endGame('你已通关！', true);
+            return;
+        }
+
         // 死亡处理
         if (player.hp <= 0) {
-            alert("你挂了！得分: " + Math.floor(player.score));
-            location.reload();
+            endGame('你挂了！');
+            return;
         }
         
         // 机器人重生
         bots.forEach((bot, index) => {
             if (bot.hp <= 0) {
                 bots.splice(index, 1);
-                bots.push(new Digger((Math.random() - 0.5) * mapSize, (Math.random() - 0.5) * mapSize, true));
+                let x, y;
+                do {
+                    x = (Math.random() - 0.5) * mapSize;
+                    y = (Math.random() - 0.5) * mapSize;
+                } while (Math.hypot(x - player.x, y - player.y) < 20 + player.radius); // 确保不与玩家重叠
+                bots.push(new Digger(x, y, true));
             }
         });
     }
@@ -524,8 +661,8 @@
 
         // 网格
         ctx.strokeStyle = '#333';
-        ctx.lineWidth = 4;
-        const gridSize = 400;
+        ctx.lineWidth = 5;
+        const gridSize = 500;
         const startX = Math.floor(cameraX / gridSize) * gridSize;
         const startY = Math.floor(cameraY / gridSize) * gridSize;
         
