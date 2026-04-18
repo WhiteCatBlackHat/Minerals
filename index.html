@@ -137,11 +137,12 @@
         <button class="btn-resume start-btn disabled" onclick="alert('联机功能暂未开发（不只是暂未开放）！')">联机模式</button>
     </p>
     <h3><b>更新日志 (
-        <button onclick="document.getElementById('updateData').hidden=false">展开</button>
-        <button onclick="document.getElementById('updateData').hidden=true">收起</button>
+        <button onclick="document.getElementById('changeLog').hidden=false">展开</button>
+        <button onclick="document.getElementById('changeLog').hidden=true">收起</button>
     ) </b></h3>
-    <div id="updateData" hidden="true">
+    <div id="changeLog" hidden="true">
         <ul>
+            <li><p>v5.2 2026.04.18 修改矿物重生逻辑并修 bug</p></li>
             <li><p>v5.1 2026.04.14 增加模式选择并更新 UI</p></li>
             <li><p>v5.0 2026.04.14 增加通关条件并更新 UI</p></li>
             <li><p>v4.4 2026.04.12 修改 AI 移动逻辑</p></li>
@@ -265,7 +266,7 @@
                 this.hp = Math.min(this.hp + 0.3, this.maxHp); 
             } else {
                 this.state = 'normal';
-                this.speed = 4;
+                this.speed = this.normSpeed;
             }
 
             const worldMouseX = mouse.x + cameraX;
@@ -537,6 +538,8 @@
         minerals.forEach(m => {
             if (!m.active) {
                 if (Date.now() > m.regenTimer) {
+                    m.x = (Math.random() - 0.5) * mapSize;
+                    m.y = (Math.random() - 0.5) * mapSize;
                     m.active = true;
                     m.radius = 10 + Math.random() * 15; // 重生时随机大小
                 }
