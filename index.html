@@ -142,6 +142,7 @@
     ) </b></h3>
     <div id="changeLog" hidden="true">
         <ul>
+            <li><p>v5.4 2026.04.19 修改计时逻辑并更新 UI</p></li>
             <li><p>v5.3 2026.04.19 <span class="clickableText" onclick="alert('感谢 hhc_ 提供的灵感')">修改</span> AI 移动逻辑</p></li>
             <li><p>v5.2 2026.04.18 修改矿物重生逻辑并修 bug</p></li>
             <li><p>v5.1 2026.04.14 增加模式选择并更新 UI</p></li>
@@ -197,7 +198,7 @@
     let cameraX = 0, cameraY = 0;
     let cntCreature = 0;
     let nowShowing;
-    let startTime;
+    let startTime, pauseTime;
     let infiniteMode = false;
     
     // 矿物配置
@@ -497,29 +498,33 @@
 
     // 暂停/恢复游戏
     function togglePause() {
-        isPaused = !isPaused;
-        pauseMenu.style.display = isPaused ? 'flex' : 'none';
+        if (isPaused) resumeGame();
+        else pauseGame();
     }
-
+    function pauseGame() {
+        isPaused = true;
+        pauseMenu.style.display = 'flex';
+        pauseTime = Date.now();
+    }
     function resumeGame() {
         isPaused = false;
         pauseMenu.style.display = 'none';
+        startTime += Date.now() - pauseTime;
+        pauseTime = 0;
     }
 
     function endGame(message, isVictory = false) {
         gameRunning = false;
         isPaused = false;
         pauseMenu.style.display = 'none';
-        const gameTime = Math.floor((Date.now() - startTime) / 1000); // 秒
+        const gameTime = (Date.now() - startTime - (pauseTime ? Date.now() - pauseTime : 0)) / 1000;
         const finalMass = Math.floor(player.mass);
+        const msg = `${message} 得分: ${Math.floor(player.score)} | 最终质量: ${finalMass} | 游戏时间: ${gameTime} 秒`;
+        alert(msg);
         if (isVictory) {
-            const msg = `${message} 最终得分: ${Math.floor(player.score)} | 最终质量: ${finalMass} | 游戏时间: ${gameTime} 秒`;
-            alert(msg);
             document.getElementById('victoryMessage').innerText = msg;
             showPage('victoryScreen');
         } else {
-            const msg = `${message} 得分: ${Math.floor(player.score)} | 最终质量: ${finalMass} | 游戏时间: ${gameTime} 秒`;
-            alert(msg);
             document.getElementById('deathMessage').innerText = msg;
             showPage('deathScreen');
         }
