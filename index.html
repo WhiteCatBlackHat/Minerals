@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minerals</title>
     <style>
+        html {
+            height: 100%;
+            background: #000;
+        }
         body {
+            min-height: 100%;
             margin: 0;
-            overflow: hidden;
-            background: #1a1a1a;
+            background: rgba(0, 0, 0, 0.85);
             font-family: 'Segoe UI', sans-serif;
         }
         canvas { display: block; }
@@ -25,7 +29,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             -webkit-backdrop-filter: blur(2px);
             backdrop-filter: blur(2px); 
             justify-content: center;
@@ -34,14 +38,6 @@
             z-index: 100;
         }
         
-        .bar-container {
-            width: 200px; height: 12px;
-            background: #333;
-            margin-top: 5px;
-            border-radius: 6px;
-            overflow: hidden;
-            border: 1px solid #555;
-        }
         .hp-fill {
             height: 100%;
             background: #ff3333;
@@ -49,18 +45,18 @@
             transition: width 0.1s linear;
         }
         .menu-box {
-            background: #222;
+            background: black;
             padding: 30px;
             border-radius: 10px;
             text-align: center;
             border: 2px solid #444;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
         .fullScreen {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -69,11 +65,11 @@
             z-index: 200;
         }
         
-        h1 { margin: 0 0 10px 0; color: #ffeb3b; }
+        h1 { margin: 20px 0 10px; color: #ffeb3b; }
+        h2, h3 { color: #ffeb3b; text-align: center; }
         button {
             padding: 5px 10px;
             margin: 10px 3px;
-            font-size: 16px;
             cursor: pointer;
             border: none;
             border-radius: 5px;
@@ -93,37 +89,91 @@
         .btn-giveup { background: #f44336; color: white; }
 
         .score-display { font-size: 24px; font-weight: bold; }
-        .start-btn { font-size: 20px; }
         .title { font-size: 40px; }
-        #startScreen p { margin: 0; }
+        .fullScreen p { margin: 0; }
+        #startScreen h3 { margin: 0; }
+        ol, ul { text-align: left; margin: 10px 0; }
         ol li p { margin: 5px; }
+        #changelogUl { max-width: 450px; margin-top: 0; }
         .clickableText { cursor: pointer; opacity: 0.9; text-decoration: underline; }
+        
+        #usernameModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+        }
+        
+        .menu-box input {
+            padding: 8px;
+            font-size: 16px;
+            width: 200px;
+            margin: 10px 0;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+        }
+        
+        .lb-columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            justify-content: center;
+            width: 100%;
+        }
+        .lb-column {
+            flex: 1;
+            width: 50%;
+        }
+        .lb-column h2 {
+            margin-top: 0;
+            font-size: 20px;
+            text-align: center;
+        }
+        
+        #leaderboardContent { width: 80%; }
+        .leaderboard-table {
+            width: 95%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .leaderboard-table th {
+            background: #333;
+            padding: 10px;
+            border: 1px solid #555;
+            color: #fff48d;
+        }
+        .leaderboard-table td {
+            padding: 10px;
+            border: 1px solid #555;
+        }
+        .leaderboard-table tr:nth-child(even) { background: #262626; }
+        .leaderboard-table tr:nth-child(odd) { background: #1a1a1a; }
+        
+        .signboard {
+            background: rgba(0, 0, 0, 0.5);
+            border: 3px solid #555;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            margin: 20px auto;
+            max-width: 600px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
-<div id="game">
-    <div id="ui">
-        <div class="score-display">分数: <span id="scoreVal">0</span></div>
-        <div>质量: <span id="massVal">100</span></div>
-        <div id="statusText">状态: 正常</div>
-        <div class="bar-container"><div id="hpBar" class="hp-fill"></div></div>
-    </div>
-    <canvas id="gameCanvas"></canvas>
-</div>
-
-<div id="pauseMenu">
-    <div class="menu-box">
-        <h1>游戏已暂停</h1>
-        <button class="btn btn-resume" onclick="resumeGame()">继续</button>
-        <button class="btn btn-giveup" onclick="endGame('游戏结束！')">放弃</button>
-    </div>
-</div>
-
 <div id="startScreen" class="fullScreen">
     <h1 class="title">Minerals</h1>
-    <div id="tutorial">
-        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;教程：</p>
+    <div id="tutorial" class="signboard">
+        <h3>教程</h3>
         <ol>
             <li><p>使用鼠标移动</p></li>
             <li><p>空格/鼠标左键：愤怒（加速 & 耗血）</p></li>
@@ -136,12 +186,15 @@
         <button class="btn-resume start-btn" onclick="startGame(false)">通关模式</button>
         <button class="btn-resume start-btn disabled" onclick="alert('联机功能暂未开发（不只是暂未开放）！')">联机模式</button>
     </p>
-    <h3><b>更新日志 (
-        <button onclick="document.getElementById('changeLog').hidden=false">展开</button>
-        <button onclick="document.getElementById('changeLog').hidden=true">收起</button>
-    ) </b></h3>
-    <div id="changeLog" hidden="true">
-        <ul>
+    <p><button onclick="showLeaderboard()">本地排行榜</button></p>
+    <div id="changelog" class="signboard">
+        <h3>更新日志</h3>
+        <p style="margin: 5px 10px;">
+            <button onclick="document.getElementById('changelogUl').hidden=false">展开</button>
+            <button onclick="document.getElementById('changelogUl').hidden=true">收起</button>
+        </p>
+        <ul id="changelogUl" hidden="true">
+            <li><p>v6.0 2026.04.19 增加通关模式排行榜和用户名，更新 UI，修改通关条件</p></li>
             <li><p>v5.5 2026.04.19 增加边界绘制</p></li>
             <li><p>v5.4 2026.04.19 修改计时逻辑并更新 UI</p></li>
             <li><p>v5.3 2026.04.19 <span class="clickableText" onclick="alert('感谢 hhc_ 提供的灵感')">修改</span> AI 移动逻辑</p></li>
@@ -167,10 +220,27 @@
     </div>
 </div>
 
+<div id="game">
+    <div id="ui">
+        <div class="score-display">分数: <span id="scoreVal">0</span></div>
+        <div>质量: <span id="massVal">100</span></div>
+        <div id="statusText">状态: 正常</div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<div id="pauseMenu">
+    <div class="menu-box">
+        <h1>游戏已暂停</h1>
+        <button class="btn btn-resume" onclick="resumeGame()">继续</button>
+        <button class="btn btn-giveup" onclick="endGame('游戏结束！')">放弃</button>
+    </div>
+</div>
+
 <div id="victoryScreen" class="fullScreen">
     <div class="menu-box">
         <h1>恭喜通关！</h1>
-        <p id="victoryMessage">你已突破 100 万分</p>
+        <p id="victoryMessage">你已突破 10 万分</p>
         <button class="btn-resume" onclick="restartGame()">再来一局</button>
         <button class="btn-giveup" onclick="showPage('startScreen')">返回标题</button>
     </div>
@@ -185,14 +255,31 @@
     </div>
 </div>
 
+<div id="usernameModal">
+    <div class="menu-box">
+        <h1>输入用户名</h1>
+        <input type="text" id="usernameInput" placeholder="输入你的用户名" maxlength="20" onkeypress="if(event.key === 'Enter') confirmUsername()">
+        <div>
+            <button class="btn-resume" onclick="confirmUsername()">确认</button>
+            <button class="btn-giveup" onclick="cancelUsername()">取消</button>
+        </div>
+    </div>
+</div>
+
+<div id="leaderboard" class="fullScreen">
+    <h1>通关排行榜</h1>
+    <p><button class="btn-giveup" onclick="showPage('startScreen')">返回主菜单</button></p>
+    <div id="leaderboardContent"></div>
+</div>
+
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const pauseMenu = document.getElementById('pauseMenu');
     
     const mapSize = 10000;
-    const victoryScore = 1000000;
-    const pages = ['game', 'startScreen', 'deathScreen', 'victoryScreen'];
+    const victoryScore = 100000;
+    const pages = ['game', 'startScreen', 'deathScreen', 'victoryScreen', 'leaderboard'];
     let width, height;
     let gameRunning = false;
     let isPaused = false;
@@ -201,6 +288,8 @@
     let nowShowing;
     let startTime, pauseTime;
     let infiniteMode = false;
+    let currentUsername = '';
+    let currentLeaderboardTab = 'time';
     
     // 矿物配置
     const MINERALS = [
@@ -306,8 +395,8 @@
             });
             // 先考虑追击视野内最蒟的
             if (weakest && this.mass * this.hp > minStrength * 1.1) {
-                if (distToPlayer - this.radius - player.radius <= sightRadius)
-                    console.log('strength of weakest: ', minStrength, ', strength of player: ', player.mass * player.hp);
+                // if (distToPlayer - this.radius - player.radius <= sightRadius)
+                //     console.log('strength of weakest: ', minStrength, ', strength of player: ', player.mass * player.hp);
                 target = { x: weakest.x, y: weakest.y };
                 this.state = 'angry'; // 攻击时愤怒
             }
@@ -387,11 +476,13 @@
             ctx.restore();
             
             // 名字/血条
-            if (this.isBot && this.hp > 0) {
+            if (this.hp > 0) {
+                const barWidth = this.isBot ? 40 : 60;
+                const barStartX = this.x - barWidth / 2;
                 ctx.fillStyle = 'red';
-                ctx.fillRect(this.x - 20, this.y - this.radius - 15, 40, 6);
+                ctx.fillRect(barStartX, this.y - this.radius - 15, barWidth, 6);
                 ctx.fillStyle = '#0f0';
-                ctx.fillRect(this.x - 20, this.y - this.radius - 15, 40 * (this.hp / this.maxHp), 6);
+                ctx.fillRect(barStartX, this.y - this.radius - 15, barWidth * (this.hp / this.maxHp), 6);
             }
         }
     }
@@ -476,6 +567,34 @@
     // 开始游戏
     function startGame(isInfinite) {
         infiniteMode = Boolean(isInfinite);
+        
+        // 如果是通关模式，要求输入用户名
+        if (!infiniteMode) {
+            document.getElementById('usernameInput').value = '';
+            document.getElementById('usernameModal').style.display = 'flex';
+            return;
+        }
+        
+        // 无限模式直接开始
+        startGameWithUsername('');
+    }
+    
+    function confirmUsername() {
+        const username = document.getElementById('usernameInput').value.trim();
+        if (!username) {
+            alert('请输入文本');
+            return;
+        }
+        currentUsername = username;
+        document.getElementById('usernameModal').style.display = 'none';
+        startGameWithUsername(username);
+    }
+    function cancelUsername() {
+        document.getElementById('usernameModal').style.display = 'none';
+        infiniteMode = false;
+        currentUsername = '';
+    }
+    function startGameWithUsername(username) {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
         startTime = Date.now();
@@ -520,8 +639,14 @@
         pauseMenu.style.display = 'none';
         const gameTime = (Date.now() - startTime - (pauseTime ? Date.now() - pauseTime : 0)) / 1000;
         const finalMass = Math.floor(player.mass);
-        const msg = `${message} 得分: ${Math.floor(player.score)} | 最终质量: ${finalMass} | 游戏时间: ${gameTime} 秒`;
+        const msg = `${message} 得分: ${Math.floor(player.score)} | 最终质量: ${finalMass} | 游戏时间: ${gameTime}s`;
         alert(msg);
+        
+        if (isVictory && !infiniteMode) {
+            // 记录通关成绩
+            saveLeaderboardRecord(currentUsername, gameTime, finalMass);
+        }
+        
         if (isVictory) {
             document.getElementById('victoryMessage').innerText = msg;
             showPage('victoryScreen');
@@ -529,6 +654,92 @@
             document.getElementById('deathMessage').innerText = msg;
             showPage('deathScreen');
         }
+    }
+    
+    // 排行榜相关函数
+    function saveLeaderboardRecord(username, time, mass) {
+        const records = JSON.parse(localStorage.getItem('mineralsLeaderboard') || '[]');
+        const now = new Date();
+        const timestamp = now.getFullYear() + '.' +
+                          String(now.getMonth() + 1).padStart(2, '0') + '.' +
+                          String(now.getDate()).padStart(2, '0') + ' ' +
+                          String(now.getHours()).padStart(2, '0') + ':' +
+                          String(now.getMinutes()).padStart(2, '0') + ':' +
+                          String(now.getSeconds()).padStart(2, '0');
+        
+        records.push({
+            username: username,
+            time: time,
+            mass: mass,
+            timestamp: timestamp
+        });
+        
+        localStorage.setItem('mineralsLeaderboard', JSON.stringify(records));
+    }
+    function getLeaderboardRecords(sortBy = 'time') {
+        const records = JSON.parse(localStorage.getItem('mineralsLeaderboard') || '[]');
+        
+        if (sortBy === 'time') {
+            return records.sort((a, b) => a.time - b.time);
+        } else if (sortBy === 'mass') {
+            return records.sort((a, b) => b.mass - a.mass);
+        }
+        return records;
+    }
+    function showLeaderboard() {
+        showPage('leaderboard');
+        const records = JSON.parse(localStorage.getItem('mineralsLeaderboard') || '[]');
+        const content = document.getElementById('leaderboardContent');
+        
+        if (records.length === 0) {
+            content.innerHTML = '<p>暂无记录</p>';
+            return;
+        }
+        
+        const timeRecords = [...records].sort((a, b) => a.time - b.time).slice(0, 50);
+        const massRecords = [...records].sort((a, b) => b.mass - a.mass).slice(0, 50);
+        
+        let html = '<div class="lb-columns">';
+        html += '<div class="lb-column">';
+        html += '<h2>通关用时排行</h2>';
+        html += '<table class="leaderboard-table"><thead><tr>';
+        html += '<th style="width: 10%;">排名</th>';
+        html += '<th style="width: 30%;">用户名</th>';
+        html += '<th style="width: 25%;">通关用时</th>';
+        html += '<th style="width: 35%;">达成时间</th>';
+        html += '</tr></thead><tbody>';
+        timeRecords.forEach((record, index) => {
+            html += '<tr>';
+            html += `<td><b>${index + 1}</b></td>`;
+            html += `<td>${record.username}</td>`;
+            html += `<td>${record.time}s</td>`;
+            html += `<td>${record.timestamp}</td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '</div>';
+        
+        html += '<div class="lb-column">';
+        html += '<h2>通关质量排行</h2>';
+        html += '<table class="leaderboard-table"><thead><tr>';
+        html += '<th style="width: 10%;">排名</th>';
+        html += '<th style="width: 30%;">用户名</th>';
+        html += '<th style="width: 25%;">通关质量</th>';
+        html += '<th style="width: 35%;">达成时间</th>';
+        html += '</tr></thead><tbody>';
+        massRecords.forEach((record, index) => {
+            html += '<tr>';
+            html += `<td><b>${index + 1}</b></td>`;
+            html += `<td>${record.username}</td>`;
+            html += `<td>${record.mass}</td>`;
+            html += `<td>${record.timestamp}</td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '</div>';
+        html += '</div>';
+        
+        content.innerHTML = html;
     }
 
     // 核心物理与逻辑更新
@@ -640,7 +851,6 @@
         document.getElementById('scoreVal').innerText = Math.floor(player.score);
         document.getElementById('massVal').innerText = Math.floor(player.mass);
         document.getElementById('statusText').innerText = `状态: ${player.state === 'angry' ? '愤怒 (耗血)' : (player.state === 'sad' ? '伤心 (回血)' : '正常')}`;
-        document.getElementById('hpBar').style.width = (player.hp / player.maxHp * 100) + '%';
 
         // 通关处理
         if (!infiniteMode && player.score >= victoryScore) {
