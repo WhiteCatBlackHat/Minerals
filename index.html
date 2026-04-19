@@ -97,7 +97,7 @@
         .title { font-size: 40px; }
         #startScreen p { margin: 0; }
         ol li p { margin: 5px; }
-        .clickableText { cursor: pointer; color: #dddddd; text-decoration: underline; }
+        .clickableText { cursor: pointer; opacity: 0.9; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -142,6 +142,7 @@
     ) </b></h3>
     <div id="changeLog" hidden="true">
         <ul>
+            <li><p>v5.5 2026.04.19 增加边界绘制</p></li>
             <li><p>v5.4 2026.04.19 修改计时逻辑并更新 UI</p></li>
             <li><p>v5.3 2026.04.19 <span class="clickableText" onclick="alert('感谢 hhc_ 提供的灵感')">修改</span> AI 移动逻辑</p></li>
             <li><p>v5.2 2026.04.18 修改矿物重生逻辑并修 bug</p></li>
@@ -702,6 +703,15 @@
             ctx.moveTo(cameraX, y); ctx.lineTo(cameraX + width, y);
         }
         ctx.stroke();
+
+        // 绘制边界
+        ctx.save();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([20, 15]);
+        ctx.strokeRect(-0.5 * mapSize, -0.5 * mapSize, mapSize, mapSize);
+        ctx.setLineDash([]);
+        ctx.restore();
 
         // 绘制矿物
         minerals.forEach(m => {
