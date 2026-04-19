@@ -142,6 +142,7 @@
     ) </b></h3>
     <div id="changeLog" hidden="true">
         <ul>
+            <li><p>v5.3 2026.04.19 <span class="clickableText" onclick="alert('感谢 hhc_ 提供的灵感')">修改</span> AI 移动逻辑</p></li>
             <li><p>v5.2 2026.04.18 修改矿物重生逻辑并修 bug</p></li>
             <li><p>v5.1 2026.04.14 增加模式选择并更新 UI</p></li>
             <li><p>v5.0 2026.04.14 增加通关条件并更新 UI</p></li>
@@ -282,33 +283,35 @@
             const sightRadius = 800;    // 视野范围大小
             
             // 计算出视野内最蒟的和最巨的
-            let smallest = null, minRadius = Infinity, largest = null, maxRadius = -1;
+            let weakest = null, minStrength = Infinity, strongest = null, maxStrength = -1;
             if (distToPlayer - this.radius - player.radius <= sightRadius) {
-                smallest = player;
-                minRadius = player.radius;
-                largest = player;
-                maxRadius = player.radius;
+                weakest = player;
+                minStrength = player.mass * player.hp;
+                strongest = player;
+                maxStrength = player.mass * player.hp;
             }
             bots.forEach(b => {
                 const d = Math.hypot(b.x - this.x, b.y - this.y);
-                if (d - this.radius - b.radius <= sightRadius) {
-                    if (b.radius < minRadius) {
-                        smallest = b;
-                        minRadius = b.radius;
-                    } else if (b.radius > maxRadius) {
-                        largest = b;
-                        maxRadius = b.radius;
+                if (b.id !== this.id && d - this.radius - b.radius <= sightRadius) {
+                    if (b.mass * b.hp < minStrength) {
+                        weakest = b;
+                        minStrength = b.mass * b.hp;
+                    } else if (b.mass * b.hp > maxStrength) {
+                        strongest = b;
+                        maxStrength = b.mass * b.hp;
                     }
                 }
             });
             // 先考虑追击视野内最蒟的
-            if (smallest && this.mass > smallest.mass * 1.1) {
-                target = { x: smallest.x, y: smallest.y };
+            if (weakest && this.mass * this.hp > minStrength * 1.1) {
+                if (distToPlayer - this.radius - player.radius <= sightRadius)
+                    console.log('strength of weakest: ', minStrength, ', strength of player: ', player.mass * player.hp);
+                target = { x: weakest.x, y: weakest.y };
                 this.state = 'angry'; // 攻击时愤怒
             }
             // 再考虑逃离视野内最巨的
-            else if (largest && this.mass < largest.mass * 0.8) {
-                const angleToLargest = Math.atan2(largest.y - this.y, largest.x - this.x);
+            else if (strongest && this.mass * this.hp < maxStrength * 0.8) {
+                const angleToLargest = Math.atan2(strongest.y - this.y, strongest.x - this.x);
                 this.angle = angleToLargest + Math.PI * 0.75 + Math.random() * Math.PI * 0.5;  // 反向跑
                 this.speed = this.normSpeed * 1.5;
                 this.state = 'normal';
